@@ -1,4 +1,3 @@
-name: patterncode
 channels:
   - defaults
   - conda-forge
@@ -17,3 +16,6 @@ dependencies:
   - scikit-image
   - statsmodels
   - tqdm
+  - fire
+  - pip:
+    - matplotlib_scalebar

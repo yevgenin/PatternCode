@@ -31,11 +31,6 @@ T = TypeVar('T')
 DATA_DIR = Path().home() / 'data'
 OUT_DIR = Path().home() / 'Dropbox/out'
 CACHE_DIR = DATA_DIR / 'out/cache'
-HUMAN_GENOME_FASTA_FILE = (
-        DATA_DIR /
-        "human/ncbi_dataset/data/GCF_000001405.40/GCF_000001405.40_GRCh38.p14_genomic.fna"
-)
-
 ENV_PREFIX = 'PC_'
 ENV_RUN_NAME = ENV_PREFIX + 'RUN_NAME'
 ENV_LOAD_RUN_NAME = ENV_PREFIX + 'LOAD_RUN_NAME'
@@ -111,6 +106,8 @@ BACTERIA_SUMMARY_FILE = DOWNLOAD_DIR / 'summary.jsonl'
 ASSEMBLY_SUMMARY_FILE = Path('ncbi_dataset') / 'data' / 'assembly_data_report.jsonl'
 UNPACK_DIR_BACTERIA = DOWNLOAD_DIR / 'bacteria'
 UNPACK_DIR_HUMAN = DOWNLOAD_DIR / 'human'
+
+HUMAN_GENOME_FASTA_FILE = UNPACK_DIR_HUMAN / "ncbi_dataset/data/GCF_000001405.40/GCF_000001405.40_GRCh38.p14_genomic.fna"
 
 IUPAC_DNA = {
     'A': ['A'],

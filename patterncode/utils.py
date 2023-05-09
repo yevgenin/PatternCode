@@ -6,12 +6,10 @@ from copy import copy
 from functools import lru_cache
 
 import joblib
-import numba
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
 from IPython.core.display_functions import display
-from git import InvalidGitRepositoryError
 from matplotlib import pyplot as plt
 from statsmodels.stats.proportion import proportion_confint
 from tqdm.auto import tqdm
@@ -23,35 +21,6 @@ def set_seed(seed: int = SEED):
     print('Setting random seed to: ', seed)
     random.seed(seed)
     np.random.seed(seed)
-
-
-def init_nb():
-    set_seed()
-
-    envvars = {k: v for k, v in os.environ.items() if k.startswith(ENV_PREFIX)}
-    print(f'Commit: {get_git_commit_hash()}')
-    print(f'Environment variables: {envvars}')
-
-
-def git_repo():
-    try:
-        import git
-        return git.Repo(path=__file__, search_parent_directories=True)
-    except (InvalidGitRepositoryError, ImportError):
-        return None
-
-
-def get_git_commit_hash():
-    repo = git_repo()
-    if repo is not None:
-        return str(repo.head.object)
-
-
-def git_auto_commit():
-    repo = git_repo()
-    print(repo.git.add('.'))
-    print(repo.git.status())
-    print(repo.git.commit('-m', 'auto-commit'))
 
 
 def clear_cache():

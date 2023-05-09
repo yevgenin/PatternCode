@@ -6,7 +6,7 @@ PatternCode is a Python tool for design of optimal labeling patterns for optical
 # Installation
 
 ```shell
-conda env create -f env.yml
+conda env create -n patterncode -f ./environment.yml
 conda activate patterncode
 ```
 

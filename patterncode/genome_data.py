@@ -156,56 +156,46 @@ class NCBIGenome(GenomeIndex):
         ])
 
     @classmethod
-    def download_bacteria(cls):
-        names = get_species_names(BACTERIA_NAMES)
+    def download_genomes(cls):
+        names = ['human', *get_species_names(BACTERIA_NAMES)]
         download_dir = Path(DOWNLOAD_DIR)
         download_dir.mkdir(exist_ok=True, parents=True)
 
         print('Downloading genomes')
         for name in names:
-            file = Path(download_dir) / f'{name}.zip'
-            if not file.exists():
-                print('Downloading: ', name)
-                cmd = [
-                    'datasets', 'download', 'genome', 'taxon', f'"{name}"',
-                    '--filename', str(file),
+            cls._download_species(name, download_dir)
+
+    @classmethod
+    def _download_species(cls, name, download_dir):
+        file = Path(download_dir) / f'{name}.zip'
+        if not file.exists():
+            print('Downloading: ', name)
+            cmd = [
+                'datasets', 'download', 'genome', 'taxon', f'"{name}"',
+                '--filename', str(file),
+                '--reference',
+            ]
+            if name != 'human':
+                cmd += [
                     '--assembly-level', 'complete',
                     '--exclude-atypical',
-                    '--reference',
                 ]
-                print(' '.join(cmd))
-                subprocess.run(cmd, check=True)
-            else:
-                print('Skipping: ', name)
+            print(' '.join(cmd))
+            subprocess.run(cmd, check=True)
+        else:
+            print('Skipping: ', name)
+
+        if name == 'human':
+            unpack_dir = UNPACK_DIR_HUMAN
+        else:
             unpack_dir = UNPACK_DIR_BACTERIA / name
-            if not unpack_dir.exists():
-                print('Unpacking: ', file, 'to', unpack_dir)
-                unpack_dir.mkdir(exist_ok=True, parents=True)
-                shutil.unpack_archive(file, unpack_dir)
-            else:
-                print('Skipping: ', unpack_dir)
 
-    @classmethod
-    def download_human(cls):
-        name = 'human'
-        print('Downloading: ', name)
-        file = Path(DOWNLOAD_DIR) / f'human.zip'
-        cmd = [
-            'datasets', 'download', 'genome', 'taxon', 'human',
-            '--filename', str(file),
-            '--reference',
-        ]
-        print(' '.join(cmd))
-        subprocess.run(cmd)
-        unpack_dir = UNPACK_DIR_HUMAN
-        unpack_dir.mkdir(exist_ok=True, parents=True)
-        print('Unpacking: ', file, 'to', unpack_dir)
-        shutil.unpack_archive(file, unpack_dir)
-
-    @classmethod
-    def download_genomes(cls):
-        cls.download_bacteria()
-        cls.download_human()
+        if not unpack_dir.exists():
+            print('Unpacking: ', file, 'to', unpack_dir)
+            unpack_dir.mkdir(exist_ok=True, parents=True)
+            shutil.unpack_archive(file, unpack_dir)
+        else:
+            print('Skipping: ', unpack_dir)
 
 
 if __name__ == '__main__':
