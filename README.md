@@ -1,5 +1,3 @@
-[![DOI](https://zenodo.org/badge/589631647.svg)](https://zenodo.org/badge/latestdoi/589631647)
-
 # PatternCode
 
 PatternCode is a Python tool for design of optimal labeling patterns for optical genome mapping via information theory.
