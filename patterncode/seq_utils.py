@@ -89,8 +89,6 @@ def test_expand_iupac():
             expected_output), f"Error for sequence {sequence}: expected {expected_output}, got {result}"
 
 
-# Define a function to convert IUPAC code to possible bases
-
 @njit
 def check_match(string, substring, pos):
     for i, char in enumerate(substring):

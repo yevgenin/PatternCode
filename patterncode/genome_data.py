@@ -50,6 +50,7 @@ class GenomeIndex(Computation):
                 reversed_seq = reverse_complement(seq)
                 if seq != reversed_seq:
                     pos_lists.append(self.get_subseq_positions(reversed_seq))
+        #   unique, sorted union
         pos = np.union1d(pos_lists)
         return pos
 
