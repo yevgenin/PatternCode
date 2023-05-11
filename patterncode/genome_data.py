@@ -51,7 +51,7 @@ class GenomeIndex(Computation):
                 if seq != reversed_seq:
                     pos_lists.append(self.get_subseq_positions(reversed_seq))
         #   unique, sorted union
-        pos = np.union1d(pos_lists)
+        pos = np.unique(np.concatenate(pos_lists))
         return pos
 
     def get_subseq_positions(self, subseq: str) -> np.ndarray:

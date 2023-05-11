@@ -3,7 +3,7 @@ from functools import lru_cache
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from patterncode.config import SHOW_CI, PROJECT_DATA_DIR, MOLECULE_DATA_FILE, EXPERIMENTAL, MOLECULE_LENGTH, \
+from patterncode.config import SHOW_CI, PROJECT_DATA_DIR, OGM_DATA_FILE, EXPERIMENTAL, MOLECULE_LENGTH, \
     ERROR_PROBABILITY
 from patterncode.utils import Computation, plot_ci
 
@@ -22,7 +22,7 @@ class OGMData(Computation):
         self.show_ci = SHOW_CI
 
     def _compute(self):
-        data = pd.read_pickle(PROJECT_DATA_DIR / MOLECULE_DATA_FILE)
+        data = pd.read_pickle(PROJECT_DATA_DIR / OGM_DATA_FILE)
         vars(self).update(data)
 
         correct = self.correct_df.groupby("len_bp")["correct"]
