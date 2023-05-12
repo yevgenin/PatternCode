@@ -27,7 +27,7 @@ class LikelihoodModel(BaseModel):
 class PatternTool(BaseModel):
     sequence: str = Field(..., repr=False)
     pattern: str
-    fragment_len: int = DEFAULT_MOLECULE_LEN
+    fragment_len: int | np.ndarray = DEFAULT_MOLECULE_LEN
     bin_size: int = DEFAULT_BIN_SIZE
     genome_len: int = None
     p_x: list = None
