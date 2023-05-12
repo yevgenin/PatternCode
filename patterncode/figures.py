@@ -904,6 +904,7 @@ def p_err_vs_pattern_tables(export_dir, **kwargs):
 
 
 def p_err_vs_bin_size_figure(**kwargs):
+    plt.figure()
     PErrVsChannelModel.make(
         attr='bin_size',
         vals=np.geomspace(16, 8192, NUM_BIN_SIZES).astype(int), **kwargs
