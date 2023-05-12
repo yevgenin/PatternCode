@@ -1,14 +1,9 @@
 import numpy as np
-from Bio import SeqIO
 from pydantic import BaseModel, Field
-from scipy.stats import binom
-from tqdm import tqdm
 
 from patterncode.config import *
 from patterncode.dmc import error_probability_dmc
-from patterncode.figures import Theory
 from patterncode.seq_utils import find_pattern_positions
-from patterncode.utils import read_human_genome
 
 
 class LikelihoodModel(BaseModel):
