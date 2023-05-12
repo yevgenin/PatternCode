@@ -98,18 +98,18 @@ def check_match(string, substring, pos):
 
 
 @njit
-def find_all_substring_positions(string, substring):
+def find_pattern_positions(sequence: str, pattern: str):
     """
-    Find all positions of substring in string
+    Find all positions of pattern in sequence
 
-    :param string: genome sequence over {A, C, G, T}
-    :param substring: sequence to find over {A, C, G, T, R, Y, S, W, K, M, B, D, H, V, N} (IUPAC codes)
-    :return: list of positions where the substring is found
+    :param sequence: genome sequence over {A, C, G, T}
+    :param pattern: sequence to find over {A, C, G, T, R, Y, S, W, K, M, B, D, H, V, N} (IUPAC codes)
+    :return: list of positions where the pattern is found
     """
-    expanded_substring = [iupac_to_bases(char) for char in substring]
+    expanded_pattern = [iupac_to_bases(char) for char in pattern]
     positions = []
-    for i in range(len(string) - len(substring) + 1):
-        if check_match(string, expanded_substring, i):
+    for i in range(len(sequence) - len(pattern) + 1):
+        if check_match(sequence, expanded_pattern, i):
             positions.append(i)
     return np.array(positions)
 
@@ -167,4 +167,4 @@ def iupac_to_bases(iupac_code):
 
 
 def test_find_all_substring_positions():
-    assert np.array_equal(find_all_substring_positions("ATGCGGTGGTAGCTACG", "RTG"), [0, 5])
+    assert np.array_equal(find_pattern_positions("ATGCGGTGGTAGCTACG", "RTG"), [0, 5])
