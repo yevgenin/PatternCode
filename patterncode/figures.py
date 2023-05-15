@@ -12,6 +12,7 @@ from scipy.interpolate import interp1d
 
 from patterncode.config import *
 from patterncode.dmc import error_probability_dmc
+from patterncode.enzyme_data import REBASE_NICKING_PATTERNS
 from patterncode.genome_data import GenomeIndex
 from patterncode.illustration import plot_image_illustration
 from patterncode.ogm_data import OGMData
@@ -545,11 +546,13 @@ class PErrVsPattern(Evaluation):
 
     def __init__(self):
         super().__init__()
+        self.add_extra_patterns = True
+        self.extra_patterns = None
         self.molecule_len = None
         self._show_ci = SHOW_CI
         self.df = None
         self._simulation = None
-
+        self.extra_patterns_lens = {4, 5, 6}
         self.num_simulate_patterns = NUM_SIMULATE_PATTERNS
         self.limit_patterns = LIMIT_PATTERNS
 
@@ -564,11 +567,7 @@ class PErrVsPattern(Evaluation):
             molecule_len=self.molecule_len,
             num_trials=DEFAULT_NUM_TRIALS,
         )
-        patterns = list(map(''.join, itertools.product(ACGT, repeat=6)))
-
-        if self.limit_patterns is not None:
-            np.random.shuffle(patterns)
-            patterns = list({*patterns[:self.limit_patterns], DEFAULT_PATTERN})
+        patterns = self._get_patterns()
 
         base = self._simulation.replace(simulate=False)
         theory_df = self._swipe(base, 'pattern', patterns)
@@ -582,6 +581,21 @@ class PErrVsPattern(Evaluation):
         self.sim_df = sim_df
         self.theory_df = theory_df
 
+    def _get_patterns(self):
+        """
+        get patterns to analyze
+        """
+        patterns = list(map(''.join, itertools.product(ACGT, repeat=6)))
+        if self.limit_patterns is not None:
+            np.random.shuffle(patterns)
+            patterns = list({*patterns[:self.limit_patterns], DEFAULT_PATTERN})
+
+        if self.add_extra_patterns:
+            extra_patterns = [_ for _ in REBASE_NICKING_PATTERNS if len(_) in self.extra_patterns_lens]
+            self.extra_patterns = extra_patterns
+            patterns = list({*patterns, *extra_patterns})
+        return patterns
+
     def data_table(self):
         """
         data export table for the theory plot, sorted by error probability from low to high
@@ -589,6 +603,7 @@ class PErrVsPattern(Evaluation):
         """
         df = self.theory_df[['pattern', 'p_err', 'density']]
         df = df.sort_values('p_err')
+        df['REBASE'] = df['pattern'].isin(REBASE_NICKING_PATTERNS)
         df = df.rename(columns={
             'pattern': PATTERN,
             'density': DENSITY,
@@ -598,6 +613,9 @@ class PErrVsPattern(Evaluation):
         return df
 
     def plot_theory(self):
+        """
+        plot p_err vs density for theory
+        """
         plt.xlabel(DENSITY)
         plt.ylabel(f'{ERROR_PROBABILITY} ({THEORY})')
         plt.xscale('log', base=2)
@@ -607,7 +625,9 @@ class PErrVsPattern(Evaluation):
         x = 'density'
         y = 'p_err'
         df = df.sort_values(x)
-        plt.plot(df[x], df[y], label=THEORY, ls='', marker='o', alpha=1, ms=.5)
+        plt.scatter(df[x], df[y], label=THEORY, marker='o', s=.5)
+        df_special = df[df['pattern'].isin(self.extra_patterns)]
+        plt.scatter(df_special[x], df_special[y], label=THEORY, marker='x', c='r', s=10)
 
         if NUM_ANNOTATE_PATTERNS is not None:
             annotated_patterns = self._select_annotated(self.theory_df, by='p_err')
@@ -617,6 +637,9 @@ class PErrVsPattern(Evaluation):
         plot_grid()
 
     def plot_comparison(self):
+        """
+        plot comparison between theory and simulation. x-axis is p_err, y-axis is error rate
+        """
         df = self.sim_df
         x = 'p_err'
         y = 'error_rate'
@@ -917,4 +940,3 @@ def p_err_vs_align_length_figure(**kwargs):
         vals=np.geomspace(10e3, 400e3, 32).astype(int),
         **kwargs
     )
-

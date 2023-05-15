@@ -246,7 +246,18 @@ class Computation(ABC):
     def _plot(self):
         pass
 
-    def _swipe(self, base, attr, vals, apply='_compute', desc=None, parallel=None):
+    def _swipe(self, base, attr, vals, apply='_compute', desc=None, parallel=None) -> pd.DataFrame:
+        """
+        Swipe over values and apply method, returning a dataframe of results
+
+        :param base: base object to copy
+        :param attr: attribute to set
+        :param vals: values to set
+        :param apply: method to apply
+        :param desc: description for tqdm
+        :param parallel: parallel flag
+        :return: dataframe of results
+        """
         if parallel is None:
             parallel = self.parallel
 
@@ -268,6 +279,9 @@ class Computation(ABC):
         return pd.DataFrame(items)
 
     def _load(self):
+        """
+        Load data from file, and set attributes
+        """
         out_dir = Path(OUT_DIR)
         assert out_dir.exists(), out_dir
 
@@ -290,6 +304,9 @@ class Computation(ABC):
         self.file_path = file_path
 
     def _save(self):
+        """
+        Save data to file
+        """
         if self.run_name is None:
             self.run_name = RUN_NAME
 
@@ -302,6 +319,9 @@ class Computation(ABC):
         pd.Series(report_dict(self)).to_pickle(file_path)
 
     def _make(self, **kwargs):
+        """
+        Make data, optionally loading, saving, showing, and plotting
+        """
         if DETERMINISTIC_MAKE:
             set_seed()
         self._set(**kwargs)

@@ -7,12 +7,33 @@ import numpy as np
 from patterncode.config import IUPAC_DNA
 
 
+def pad_pattern(pattern: str, target_len: int):
+    """
+    Pad pattern with Ns to target length
+
+    :param pattern: pattern to pad
+    :param target_len: target length
+    :return: padded pattern
+    """
+    k = len(pattern)
+    n = target_len
+
+    assert k <= n
+
+    if k < n:
+        padded = pattern + 'N' * (n - k)
+        print('padding: ', pattern, 'padded: ', padded)
+    else:
+        padded = pattern
+    return padded
+
+
 def expand_iupac(sequence: str) -> list[str]:
     """
     Expand IUPAC codes in sequence to all possible bases
 
     :param sequence:
-    :return: list of sequences
+    :return: list of sequences matching the IUPAC coded sequence
     """
     # Convert input sequence to list of possible bases
     sequence_options = [IUPAC_DNA[base] for base in sequence]
@@ -26,7 +47,7 @@ def expand_iupac(sequence: str) -> list[str]:
     return expanded_sequences
 
 
-def all_possible_dna_sequences(n: int, k: int = 4) -> list[str]:
+def all_patterns(n: int, k: int = 4) -> list[str]:
     # codes = ['A', 'C', 'G', 'T', 'R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
     # codes = ['A', 'C', 'G', 'T', 'R', 'Y', 'S', 'W', 'K', 'M', 'N']
     codes = {'A', 'C', 'G', 'T', 'N'}
@@ -45,7 +66,7 @@ def all_possible_dna_sequences(n: int, k: int = 4) -> list[str]:
     return valid_sequences
 
 
-def test_all_possible_dna_sequences():
+def test_all_patterns():
     def is_valid(sequence: str, k: int) -> bool:
         set_b = {'A', 'C', 'G', 'T'}
         count = sum(1 for letter in sequence if letter in set_b)
@@ -60,7 +81,7 @@ def test_all_possible_dna_sequences():
     ]
 
     for n, k in test_cases:
-        sequences = all_possible_dna_sequences(n, k)
+        sequences = all_patterns(n, k)
         print(
             f"Testing with n={n}, k={k}: {len(sequences)} sequences generated.")
 
@@ -116,6 +137,14 @@ def find_pattern_positions(sequence: str, pattern: str):
 
 @njit(nogil=True, boundscheck=False, cache=False)
 def pack_string(input_string: bytes, window_size: int):
+    """
+    pack string using two bits per letter into 16-bit integers,
+    each rolling window of size window_size is packed into one integer
+
+    :param input_string: the string to pack
+    :param window_size: the size of the window to pack
+    :return: packed string into 16-bit integers
+    """
     mask = numba.int16((1 << (window_size * 2)) - 1)
     assert 1 <= window_size <= 8
 
