@@ -22,7 +22,6 @@ def pad_pattern(pattern: str, target_len: int):
 
     if k < n:
         padded = pattern + 'N' * (n - k)
-        print('padding: ', pattern, 'padded: ', padded)
     else:
         padded = pattern
     return padded
