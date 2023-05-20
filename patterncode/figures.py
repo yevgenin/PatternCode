@@ -546,15 +546,13 @@ class PErrVsPattern(Evaluation):
 
     def __init__(self):
         super().__init__()
-        self.add_extra_patterns = True
-        self.extra_patterns = None
         self.molecule_len = None
         self._show_ci = SHOW_CI
         self.df = None
         self._simulation = None
-        self.extra_patterns_lens = {4, 5, 6}
         self.num_simulate_patterns = NUM_SIMULATE_PATTERNS
         self.limit_patterns = LIMIT_PATTERNS
+        self.patterns = None
 
     def _compute(self):
         self.molecule_len = DEFAULT_MOLECULE_LEN_PER_GENOME[self.genome_name]
@@ -585,15 +583,16 @@ class PErrVsPattern(Evaluation):
         """
         get patterns to analyze
         """
-        patterns = list(map(''.join, itertools.product(ACGT, repeat=6)))
+        if self.patterns is None:
+            patterns = list(map(''.join, itertools.product(ACGT, repeat=6)))
+        else:
+            patterns = self.patterns
+
         if self.limit_patterns is not None:
             np.random.shuffle(patterns)
-            patterns = list({*patterns[:self.limit_patterns], DEFAULT_PATTERN})
+            patterns = patterns[:self.limit_patterns]
 
-        if self.add_extra_patterns:
-            extra_patterns = [_ for _ in REBASE_NICKING_PATTERNS if len(_) in self.extra_patterns_lens]
-            self.extra_patterns = extra_patterns
-            patterns = list({*patterns, *extra_patterns})
+        patterns = list({*patterns, DEFAULT_PATTERN})
         return patterns
 
     def data_table(self):
@@ -603,7 +602,6 @@ class PErrVsPattern(Evaluation):
         """
         df = self.theory_df[['pattern', 'p_err', 'density']]
         df = df.sort_values('p_err')
-        df['REBASE'] = df['pattern'].isin(REBASE_NICKING_PATTERNS)
         df = df.rename(columns={
             'pattern': PATTERN,
             'density': DENSITY,
@@ -626,8 +624,8 @@ class PErrVsPattern(Evaluation):
         y = 'p_err'
         df = df.sort_values(x)
         plt.scatter(df[x], df[y], label=THEORY, marker='o', s=.5)
-        df_special = df[df['pattern'].isin(self.extra_patterns)]
-        plt.scatter(df_special[x], df_special[y], label=THEORY, marker='x', c='r', s=10)
+        # df_special = df[df['pattern'].isin(self.extra_patterns)]
+        # plt.scatter(df_special[x], df_special[y], label=THEORY, marker='x', c='r', s=10)
 
         if NUM_ANNOTATE_PATTERNS is not None:
             annotated_patterns = self._select_annotated(self.theory_df, by='p_err')

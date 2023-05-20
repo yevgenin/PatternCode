@@ -61,6 +61,7 @@ OGM_DATA_FILE = 'data.pkl'
 RANDOM_GENOME = 'random_genome'
 HUMAN_GENOME = 'human_genome'
 BACTERIAL_GENOMES = 'bacterial_genomes'
+ECOLI_GENOME = 'ecoli_genome'
 DEFAULT_MOLECULE_LEN = 50000
 DEFAULT_ALIGN_LENGTH = DEFAULT_MOLECULE_LEN
 
@@ -143,6 +144,7 @@ Proteus mirabilis
 Citrobacter koseri
 """
 
+ECOLI_ORGANISM_NAME = 'Escherichia coli K12'
 
 def get_species_names(names_str):
     names_str = [

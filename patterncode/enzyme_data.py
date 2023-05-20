@@ -29,3 +29,8 @@ GTCTC
 RAG
 RCCGGY
 """.splitlines()
+
+REBASE_NICKING_PATTERNS = [
+    _ for _ in REBASE_NICKING_PATTERNS
+    if len(_) in {4, 5, 6} and not _.startswith('#')
+]

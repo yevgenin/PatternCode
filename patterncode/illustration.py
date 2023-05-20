@@ -7,6 +7,8 @@ from skimage.exposure import rescale_intensity
 
 from patterncode.config import *
 
+GAP_LIMS = 10, 15
+
 
 def find_pattern_indices(sequence, pattern):
     indices = []
@@ -32,21 +34,35 @@ def draw_dna_sequence(ax, sequence, pattern=CTTAAG, offset=0.5):
         else:
             color = 'black'
             fontweight = 'normal'
-        ax.text(i * 5, -offset, base, color=color, fontsize=5, ha='center', va='center', fontweight=fontweight)
+        x = i * 5
+        if GAP_LIMS[0] <= i <= GAP_LIMS[1]:
+            continue
+        ax.text(x, offset, base, color=color, fontsize=5, ha='center', va='center', fontweight=fontweight)
+
 
 
 def plot_double_helix(ax, sequence, length=500, amplitude=10, period=10 * 2 * np.pi, linewidth=1):
     t = np.linspace(0, length, num=1000)
     y1 = amplitude * np.sin(period * t / length)
     y2 = -y1
+    scale = 5
+    valid = (t / scale) >= GAP_LIMS[1]
+    ax.plot(t[valid], y1[valid], color="blue", linewidth=linewidth)
+    ax.plot(t[valid], y2[valid], color="red", linewidth=linewidth)
 
-    ax.plot(t, y1, color="blue", linewidth=linewidth)
-    ax.plot(t, y2, color="red", linewidth=linewidth)
+    valid = (t / scale) <= GAP_LIMS[0]
+    ax.plot(t[valid], y1[valid], color="blue", linewidth=linewidth)
+    ax.plot(t[valid], y2[valid], color="red", linewidth=linewidth)
+
+    dots_x = np.linspace(GAP_LIMS[0] * scale, GAP_LIMS[1] * scale, num=5)[1:-1]
+    ax.plot(dots_x, np.zeros_like(dots_x), '.', color="k", markersize=1)
 
     for i in range(length):
         if i % 5 == 0:
             connector_x = np.full(50, i)
             connector_y = np.linspace(y1[i * 2], y2[i * 2], num=50)
+            if GAP_LIMS[0] <= i / scale <= GAP_LIMS[1]:
+                continue
             ax.plot(connector_x, connector_y, color="green", linewidth=.3)
 
     # Draw the DNA sequence on top of the double helix
@@ -61,8 +77,9 @@ def plot_dna_illustration():
     random.seed(0)
     pattern = 'CTTAAG'
     sequence_length = 50
-    dna_sequence = ''.join([random.choice(['A', 'C', 'G', 'T']) for _ in range(sequence_length - len(pattern) * 5)])
-    insert_positions = random.sample(range(len(dna_sequence)), 5)
+    k = 5
+    dna_sequence = ''.join([random.choice(['A', 'C', 'G', 'T']) for _ in range(sequence_length - len(pattern) * k)])
+    insert_positions = random.sample(range(len(dna_sequence)), k)
 
     for pos in sorted(insert_positions, reverse=True):
         dna_sequence = dna_sequence[:pos] + pattern + dna_sequence[pos:]
