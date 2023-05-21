@@ -9,7 +9,7 @@ from fire import Fire
 from tqdm import tqdm
 
 from patterncode.config import *
-from patterncode.seq_utils import expand_iupac, pack_string, pad_pattern
+from patterncode.seq_utils import expand_iupac, pack_string, pad_pattern, find_pattern_positions
 from patterncode.utils import cached_func, read_human_genome, Computation
 
 
@@ -43,25 +43,43 @@ class GenomeIndex(Computation):
 
     def get_pattern_positions(self, pattern: str, add_rev_comp: bool = True):
         pos_lists = []
-        pattern = pad_pattern(pattern, target_len=SUBSEQ_INDEX_LEN)
 
-        pattern_matching_subseqs = expand_iupac(pattern)
-        for subseq in pattern_matching_subseqs:
-            pos_lists.append(self.get_subseq_positions(subseq))
-            if add_rev_comp:
-                reversed_seq = reverse_complement(subseq)
-                if subseq != reversed_seq:
-                    pos_lists.append(self.get_subseq_positions(reversed_seq))
-        #   unique, sorted union
-        pattern_positions = np.unique(np.concatenate(pos_lists))
-        return pattern_positions
+        if len(pattern) > SUBSEQ_INDEX_LEN:
+            #   direct search
+            pos_lists = [
+                find_pattern_positions(str(seq), pattern)
+                for seq in tqdm(self.sequences, desc='Searching subseqs')
+            ]
+            return self._concat_pos_lists(pos_lists)
+        else:
+            #   use precomputed index
+            pattern = pad_pattern(pattern, target_len=SUBSEQ_INDEX_LEN)
+
+            #   expand pattern to all possible subseqs
+            pattern_matching_subseqs = expand_iupac(pattern)
+
+            for subseq in pattern_matching_subseqs:
+                pos_lists.append(self.get_subseq_positions(subseq))
+
+                if add_rev_comp:
+                    #   add reverse complement
+                    reverse_complement_seq = reverse_complement(subseq)
+                    if subseq != reverse_complement_seq:
+                        pos_lists.append(self.get_subseq_positions(reverse_complement_seq))
+
+            #   unique, sorted union of all positions
+            pattern_positions = np.unique(np.concatenate(pos_lists))
+            return pattern_positions
 
     def get_subseq_positions(self, subseq: str) -> np.ndarray:
         packed = pack_string(subseq.encode(), len(subseq)).item()
-        pos = [group.get(packed, []) for group in self.grouped]
+        pos_lists = [group.get(packed, []) for group in self.grouped]
+        return self._concat_pos_lists(pos_lists)
+
+    def _concat_pos_lists(self, pos_lists):
         offsets = np.cumsum([0] + self.sequence_lens[:-1])
-        assert len(pos) == len(offsets)
-        return np.concatenate([p + i for p, i in zip(pos, offsets)]).astype(np.int64)
+        assert len(pos_lists) == len(offsets)
+        return np.concatenate([p + i for p, i in zip(pos_lists, offsets)]).astype(np.int64)
 
     def _compute(self):
         self.sequences = [

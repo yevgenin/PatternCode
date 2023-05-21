@@ -4,7 +4,11 @@ import numba
 from numba import njit
 import numpy as np
 
-from patterncode.config import IUPAC_DNA
+from patterncode.config import IUPAC_DNA, ACGT
+
+
+def all_strings_of_length(alphabet=ACGT, length=6):
+    return list(map(''.join, itertools.product(alphabet, repeat=length)))
 
 
 def pad_pattern(pattern: str, target_len: int):

@@ -66,7 +66,16 @@ def report_dict(self):
     }
 
 
-def filter_uniformly(df, by, n, log=False):
+def sample_uniformly(df: pd.DataFrame, by: str, n: int, log=False):
+    """
+    Sample dataframe by column `by` such that the values are uniformly distributed.
+
+    :param df:  dataframe to sample
+    :param by:  column to sample by
+    :param n:   number of samples
+    :param log: sample uniformly in log space
+    :return:    sampled dataframe index
+    """
     assert n is not None
     if len(df) > n:
         x = df[by].sort_values()
@@ -89,15 +98,15 @@ def plot_ci(x, k, n, **kwargs):
 
 
 def plot_text_annotations(xs, ys, texts, highlight, **kwargs):
-    for i, (x, y, texts) in enumerate(zip(xs, ys, texts)):
-        # color = HIGHLIGHT_TEXT_COLOR if texts == highlight else 'k'
-        fontweight = 'bold' if texts == highlight else 'normal'
-        alpha = 1
-        kwargs = dict(
+    for i, (x, y, text) in enumerate(zip(xs, ys, texts)):
+        fontweight = 'bold' if text == highlight else 'normal'
+        alpha = .9
+        kw = dict(
             xy=(x, y),
             xycoords='data',
-            ha='center',
+            ha='left',
             va='center',
+            xytext=(10, 15),
             # xytext=(1.05, .01 + i / len(xs)),
             # textcoords='axes fraction',
             # color=color,
@@ -107,12 +116,12 @@ def plot_text_annotations(xs, ys, texts, highlight, **kwargs):
             alpha=alpha,
             arrowprops=dict(
                 arrowstyle="-|>",
-                linestyle='--',
+                linestyle='-',
                 alpha=alpha,
             ),
-            fontsize=6,
+            fontsize=7,
         ) | kwargs
-        plt.annotate(texts, **kwargs, )
+        plt.annotate(text, **kw)
 
 
 def label_ax(label):

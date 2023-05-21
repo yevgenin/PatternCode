@@ -12,12 +12,13 @@ from scipy.interpolate import interp1d
 
 from patterncode.config import *
 from patterncode.dmc import error_probability_dmc
-from patterncode.enzyme_data import REBASE_NICKING_PATTERNS
+from patterncode.config import REBASE_NICKING_PATTERNS
 from patterncode.genome_data import GenomeIndex
 from patterncode.illustration import plot_image_illustration
 from patterncode.ogm_data import OGMData
-from patterncode.utils import set_seed, filter_uniformly, plot_ci, plot_text_annotations, make_subplots, Computation, \
-    plot_grid
+from patterncode.seq_utils import all_strings_of_length
+from patterncode.utils import set_seed, sample_uniformly, plot_ci, plot_text_annotations, make_subplots, Computation, \
+    plot_grid, label_ax
 
 
 class Evaluation(Computation, ABC):
@@ -546,13 +547,14 @@ class PErrVsPattern(Evaluation):
 
     def __init__(self):
         super().__init__()
+        self.patterns = None
+        self.extra_patterns = None
+        self.annotated_patterns = None
         self.molecule_len = None
         self._show_ci = SHOW_CI
         self.df = None
         self._simulation = None
         self.num_simulate_patterns = NUM_SIMULATE_PATTERNS
-        self.limit_patterns = LIMIT_PATTERNS
-        self.patterns = None
 
     def _compute(self):
         self.molecule_len = DEFAULT_MOLECULE_LEN_PER_GENOME[self.genome_name]
@@ -561,39 +563,22 @@ class PErrVsPattern(Evaluation):
             bin_size=DEFAULT_BIN_SIZE,
             count_cap=DEFAULT_COUNT_CAP,
             likelihood=BinnedOGMData.compute_likelihood(),
-            pattern=DEFAULT_PATTERN,
             molecule_len=self.molecule_len,
             num_trials=DEFAULT_NUM_TRIALS,
         )
-        patterns = self._get_patterns()
+        patterns = self.patterns
 
         base = self._simulation.replace(simulate=False)
         theory_df = self._swipe(base, 'pattern', patterns)
 
         df = theory_df
-        df = df.loc[filter_uniformly(theory_df, by='p_err', n=self.num_simulate_patterns)]
-        patterns = list({*df['pattern'], DEFAULT_PATTERN})
+        df = df.loc[sample_uniformly(theory_df, by='p_err', n=self.num_simulate_patterns)]
+        patterns = list({*df['pattern'], *SIMULATION_PATTERNS})
         base = self._simulation.replace(simulate=True)
         sim_df = self._swipe(base, 'pattern', patterns)
 
         self.sim_df = sim_df
         self.theory_df = theory_df
-
-    def _get_patterns(self):
-        """
-        get patterns to analyze
-        """
-        if self.patterns is None:
-            patterns = list(map(''.join, itertools.product(ACGT, repeat=6)))
-        else:
-            patterns = self.patterns
-
-        if self.limit_patterns is not None:
-            np.random.shuffle(patterns)
-            patterns = patterns[:self.limit_patterns]
-
-        patterns = list({*patterns, DEFAULT_PATTERN})
-        return patterns
 
     def data_table(self):
         """
@@ -618,20 +603,25 @@ class PErrVsPattern(Evaluation):
         plt.ylabel(f'{ERROR_PROBABILITY} ({THEORY})')
         plt.xscale('log', base=2)
         plt.yscale('log', base=10)
+
         df = self.theory_df
         df = df.copy()
+
         x = 'density'
         y = 'p_err'
+
         df = df.sort_values(x)
-        plt.scatter(df[x], df[y], label=THEORY, marker='o', s=.5)
-        # df_special = df[df['pattern'].isin(self.extra_patterns)]
-        # plt.scatter(df_special[x], df_special[y], label=THEORY, marker='x', c='r', s=10)
+        plt.scatter(df[x], df[y], marker='o', s=.5)
 
-        if NUM_ANNOTATE_PATTERNS is not None:
-            annotated_patterns = self._select_annotated(self.theory_df, by='p_err')
-            self._annotate(x, y, df, annotated_patterns, xytext=(50, 0))
+        if self.extra_patterns is not None:
+            df_extra = df[df['pattern'].isin(self.extra_patterns)]
+            plt.scatter(df_extra[x], df_extra[y], marker='x', c='r', s=15)
 
-        plt.ylim(None, 1.1)
+        if self.annotated_patterns is not None:
+            # annotated_patterns = self._select_annotated(self.theory_df, by='p_err')
+            self._annotate(x, y, df, self.annotated_patterns)
+
+        plt.ylim(None, 2)
         plot_grid()
 
     def plot_comparison(self):
@@ -650,9 +640,9 @@ class PErrVsPattern(Evaluation):
         if self._show_ci:
             plot_ci(df[x], df['error_count'], df['num_trials'], alpha=0.5, color='C1', ls='-')
 
-        if NUM_ANNOTATE_PATTERNS is not None:
-            annotated_patterns = self._select_annotated(self.sim_df, by='error_rate')
-            self._annotate(x, y, df, annotated_patterns, xytext=(-50, 0))
+        # if self.annotated_patterns is not None:
+        #     # annotated_patterns = self._select_annotated(self.sim_df, by='error_rate')
+        #     self._annotate(x, y, df, self.annotated_patterns, xytext=(-50, 0))
         plt.xlabel(f'{ERROR_PROBABILITY} ({THEORY})')
         plt.ylabel(f'{ERROR_PROBABILITY} ({SIMULATION})')
         plot_grid()
@@ -667,7 +657,7 @@ class PErrVsPattern(Evaluation):
             return [DEFAULT_PATTERN]
         df = df[df['pattern'].isin(self.sim_df['pattern'])]
         log = plt.gca().get_yscale() == 'log'
-        indices = filter_uniformly(df, by=by, n=NUM_ANNOTATE_PATTERNS, log=log)
+        indices = sample_uniformly(df, by=by, n=NUM_ANNOTATE_PATTERNS, log=log)
         indices = list({*indices, df[df['pattern'] == DEFAULT_PATTERN].index[0]})
         annotated_patterns = df['pattern'].loc[indices]
         return annotated_patterns
@@ -704,7 +694,7 @@ class PErrVsFragmentLen(Evaluation):
         theory_df = self._get_theory(lens)
 
         df = theory_df
-        df = df.loc[filter_uniformly(theory_df, by='p_err', n=self.num_simulate_lens)]
+        df = df.loc[sample_uniformly(theory_df, by='p_err', n=self.num_simulate_lens)]
 
         simulation = simulation.replace(
             simulate=True,
@@ -830,6 +820,14 @@ class PErrVsChannelModel(Evaluation):
         plt.xscale('log')
         plot_grid()
 
+def rebase_patterns_table():
+    df = pd.DataFrame({
+        'Pattern': list(PATTERNS.keys()),
+        'Rebase': list(PATTERNS.values()),
+    })
+    display(df)
+    return df.style.to_latex()
+
 
 def bacterial_genomes_table(**kwargs):
     genome = GenomeIndex.get_genome(BACTERIAL_GENOMES)
@@ -897,14 +895,65 @@ def p_err_vs_fragment_len_figure(**kwargs):
 
 
 def p_err_vs_pattern_figure(**kwargs):
-    figs = {
+    patterns = list({
+        *all_strings_of_length(length=6),
+        *REBASE_NICKING_PATTERNS,
+        *SPECIAL_OGM_PATTERNS,
+    })
+
+    evals = {
         genome_name: PErrVsPattern.make(
             genome_name=genome_name,
+            patterns=patterns,
+            extra_patterns=REBASE_NICKING_PATTERNS,
+            annotated_patterns=SPECIAL_OGM_PATTERNS,
             **kwargs,
         )
-        for genome_name in GENOME_NAMES
+        for genome_name in [HUMAN_GENOME, BACTERIAL_GENOMES]
     }
-    make_subplots(figs, legend=False)
+    fig = plt.figure(figsize=(2 * FIG_SIZE, 2 * FIG_SIZE))
+    axs = fig.subplots(2, 2)
+    plt.sca(axs[0, 0])
+    label_ax('(a) Human genome (hg38)')
+    legend = ['all 6-letter', 'nicking enzymes']
+    evals[HUMAN_GENOME].plot_theory()
+    plt.ylabel('')
+    plt.legend(legend, loc='lower left')
+
+    plt.sca(axs[1, 0])
+    evals[HUMAN_GENOME].plot_comparison()
+    plt.ylabel('')
+    # plt.legend()
+
+    plt.sca(axs[0, 1])
+    label_ax('(b) Selected bacterial genomes')
+
+    evals[BACTERIAL_GENOMES].plot_theory()
+    plt.ylabel('')
+    # plt.legend(legend, loc='lower left')
+
+    plt.sca(axs[1, 1])
+    evals[BACTERIAL_GENOMES].plot_comparison()
+    plt.ylabel('')
+    # plt.legend()
+
+    plt.tight_layout(w_pad=2)
+
+
+def p_err_vs_pattern_random_genome_figure(**kwargs):
+    result = PErrVsPattern.make(
+        genome_name=RANDOM_GENOME,
+        **kwargs,
+    )
+    fig = plt.figure(figsize=(2 * FIG_SIZE, FIG_SIZE))
+    axs = fig.subplots(1, 2)
+    plt.sca(axs[0])
+    result.plot_theory()
+    plt.legend()
+    plt.sca(axs[1])
+    result.plot_comparison()
+    plt.legend()
+    plt.tight_layout(w_pad=2)
 
 
 def p_err_vs_pattern_tables(export_dir, **kwargs):
