@@ -91,10 +91,10 @@ def plot_dna_illustration():
                        width_fraction=.05,
                        length_fraction=.1,
                        sep=0,
-                       font_properties=dict(weight="bold", size=6)
+                       font_properties=dict(weight="bold", size=7)
                        )
 
-    scalebar_scale = .5e-10
+    scalebar_scale = .8e-10
     plt.gca().add_artist(ScaleBar(scalebar_scale, **scalebar_kw))
 
 
@@ -108,7 +108,7 @@ def plot_image_illustration(image, locs, ref):
     plt.xlim(0, image.shape[-1])
     plt.sca(axs[0])
 
-    plt.text(-.01, .5, 'a)', transform=plt.gca().transAxes, **label_kw, )
+    plt.text(-.01, .5, '(a)', transform=plt.gca().transAxes, **label_kw, fontweight='bold')
     plot_dna_illustration()
 
     plt.sca(axs[1])
@@ -121,7 +121,7 @@ def plot_image_illustration(image, locs, ref):
 
     plt.sca(axs[1])
 
-    plt.text(-.01, .5, 'b)', transform=plt.gca().transAxes, **label_kw, )
+    plt.text(-.01, .5, '(b)', transform=plt.gca().transAxes, **label_kw, fontweight='bold')
     plt.axis('off')
     width = 11
     crop = image[
@@ -135,7 +135,7 @@ def plot_image_illustration(image, locs, ref):
     plt.imshow(crop, cmap='gray', interpolation='none', aspect='auto')
     scalebar_kw = dict(color="ghostwhite", box_alpha=0, scale_loc="top", location="upper right", width_fraction=.05,
                        length_fraction=.1, sep=0,
-                       font_properties=dict(weight="normal", size=6))
+                       font_properties=dict(weight="bold", size=7))
 
     scalebar_scale = 130e-9
     plt.gca().add_artist(ScaleBar(scalebar_scale, **scalebar_kw))
