@@ -42,16 +42,15 @@ class GenomeIndex(Computation):
         return genome
 
     def get_pattern_positions(self, pattern: str, add_rev_comp: bool = True):
-        pos_lists = []
-
         if len(pattern) > SUBSEQ_INDEX_LEN:
-            #   direct search
-            pos_lists = [
-                find_pattern_positions(str(seq), pattern)
-                for seq in tqdm(self.sequences, desc='Searching subseqs')
-            ]
-            return self._concat_pos_lists(pos_lists)
+            assert len(pattern) <= 2 * SUBSEQ_INDEX_LEN
+            pos1 = self.get_pattern_positions(pattern[:SUBSEQ_INDEX_LEN], add_rev_comp=add_rev_comp)
+            pos2 = self.get_pattern_positions(pattern[-SUBSEQ_INDEX_LEN:], add_rev_comp=add_rev_comp)
+            offset = len(pattern) - SUBSEQ_INDEX_LEN
+            pos = np.intersect1d(pos1, pos2 - offset)
+            return pos
         else:
+            pos_lists = []
             #   use precomputed index
             pattern = pad_pattern(pattern, target_len=SUBSEQ_INDEX_LEN)
 

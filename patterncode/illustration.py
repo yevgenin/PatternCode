@@ -91,7 +91,7 @@ def plot_dna_illustration():
                        width_fraction=.05,
                        length_fraction=.1,
                        sep=0,
-                       font_properties=dict(weight="normal", size=6)
+                       font_properties=dict(weight="bold", size=6)
                        )
 
     scalebar_scale = .5e-10

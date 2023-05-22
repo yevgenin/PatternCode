@@ -1,10 +1,10 @@
-import itertools
 from abc import ABC
 from functools import lru_cache
 
 import numpy as np
 import pandas as pd
 from IPython.core.display_functions import display
+from fire import Fire
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from more_itertools import is_sorted
@@ -12,12 +12,13 @@ from scipy.interpolate import interp1d
 
 from patterncode.config import *
 from patterncode.dmc import error_probability_dmc
-from patterncode.config import REBASE_NICKING_PATTERNS
+from patterncode.config import REBASE_NICKING_PATTERNS, FIG_SIZE, RANDOM_GENOME, HUMAN_GENOME as genome, \
+    BACTERIAL_GENOMES
 from patterncode.genome_data import GenomeIndex
 from patterncode.illustration import plot_image_illustration
 from patterncode.ogm_data import OGMData
 from patterncode.seq_utils import all_strings_of_length
-from patterncode.utils import set_seed, sample_uniformly, plot_ci, plot_text_annotations, make_subplots, Computation, \
+from patterncode.utils import set_seed, sample_uniformly, plot_ci, plot_text_annotations, Computation, \
     plot_grid, label_ax
 
 
@@ -595,7 +596,7 @@ class PErrVsPattern(Evaluation):
 
         return df
 
-    def plot_theory(self):
+    def plot_theory(self, marker_size=.5):
         """
         plot p_err vs density for theory
         """
@@ -611,11 +612,11 @@ class PErrVsPattern(Evaluation):
         y = 'p_err'
 
         df = df.sort_values(x)
-        plt.scatter(df[x], df[y], marker='o', s=.5)
+        plt.scatter(df[x], df[y], marker='o', s=marker_size)
 
         if self.extra_patterns is not None:
             df_extra = df[df['pattern'].isin(self.extra_patterns)]
-            plt.scatter(df_extra[x], df_extra[y], marker='x', c='r', s=15)
+            plt.scatter(df_extra[x], df_extra[y], marker='x', c='r', s=10, alpha=.7)
 
         if self.annotated_patterns is not None:
             # annotated_patterns = self._select_annotated(self.theory_df, by='p_err')
@@ -820,14 +821,6 @@ class PErrVsChannelModel(Evaluation):
         plt.xscale('log')
         plot_grid()
 
-def rebase_patterns_table():
-    df = pd.DataFrame({
-        'Pattern': list(PATTERNS.keys()),
-        'Rebase': list(PATTERNS.values()),
-    })
-    display(df)
-    return df.style.to_latex()
-
 
 def bacterial_genomes_table(**kwargs):
     genome = GenomeIndex.get_genome(BACTERIAL_GENOMES)
@@ -835,7 +828,10 @@ def bacterial_genomes_table(**kwargs):
     df.columns = ['Organism', 'Accession', 'Sequence ID', 'Sequence Length']
     df = df.sort_values('Organism').reset_index(drop=True)
     display(df)
-    return df.style.to_latex()
+    return df.style.to_latex(
+        hrules=True,
+        column_format='|l|lll|l|',
+    )
 
 
 def estimated_distributions_table(**kwargs):
@@ -883,7 +879,7 @@ def dna_fragment_illustration_figure(**kwargs):
 
 
 def p_err_vs_fragment_len_figure(**kwargs):
-    figs = {
+    evals = {
         genome_name: PErrVsFragmentLen.make(
             genome_name=genome_name,
             _ogm_data=OGMData.get_molecules_data() if genome_name == HUMAN_GENOME else None,
@@ -891,7 +887,40 @@ def p_err_vs_fragment_len_figure(**kwargs):
         )
         for genome_name in GENOME_NAMES
     }
-    make_subplots(figs, legend=True)
+    fig = plt.figure(figsize=(3 * FIG_SIZE, 2 * FIG_SIZE))
+    axs = fig.subplots(2, 3)
+    plt.sca(axs[0, 0])
+    label_ax('(a) Random genome')
+    evals[RANDOM_GENOME].plot_theory()
+    if True:
+        plt.legend()
+    plt.sca(axs[1, 0])
+    evals[RANDOM_GENOME].plot_comparison()
+    if True:
+        plt.legend()
+    plt.sca(axs[0, 1])
+    label_ax(f'(b) {HUMAN_GENOME_SUBPLOT_TITLE}')
+    evals[genome].plot_theory()
+    if True:
+        plt.legend()
+    plt.ylabel('')
+    plt.sca(axs[1, 1])
+    evals[genome].plot_comparison()
+    if True:
+        plt.legend()
+    plt.ylabel('')
+    plt.sca(axs[0, 2])
+    label_ax(f'(c) {BACTERIAL_GENOMES_SUBPLOT_TITLE}')
+    evals[BACTERIAL_GENOMES].plot_theory()
+    if True:
+        plt.legend()
+    plt.ylabel('')
+    plt.sca(axs[1, 2])
+    evals[BACTERIAL_GENOMES].plot_comparison()
+    if True:
+        plt.legend()
+    plt.ylabel('')
+    plt.tight_layout(w_pad=2)
 
 
 def p_err_vs_pattern_figure(**kwargs):
@@ -914,46 +943,59 @@ def p_err_vs_pattern_figure(**kwargs):
     fig = plt.figure(figsize=(2 * FIG_SIZE, 2 * FIG_SIZE))
     axs = fig.subplots(2, 2)
     plt.sca(axs[0, 0])
-    label_ax('(a) Human genome (hg38)')
+    label_ax(f'(a) {HUMAN_GENOME_SUBPLOT_TITLE}')
     legend = ['all 6-letter', 'nicking enzymes']
     evals[HUMAN_GENOME].plot_theory()
-    plt.ylabel('')
     plt.legend(legend, loc='lower left')
 
     plt.sca(axs[1, 0])
     evals[HUMAN_GENOME].plot_comparison()
-    plt.ylabel('')
-    # plt.legend()
 
     plt.sca(axs[0, 1])
-    label_ax('(b) Selected bacterial genomes')
-
+    label_ax(f'(b) {BACTERIAL_GENOMES_SUBPLOT_TITLE}')
+    plt.ylim(0, 1)
     evals[BACTERIAL_GENOMES].plot_theory()
-    plt.ylabel('')
-    # plt.legend(legend, loc='lower left')
 
     plt.sca(axs[1, 1])
     evals[BACTERIAL_GENOMES].plot_comparison()
-    plt.ylabel('')
-    # plt.legend()
-
+    plt.ylim(0, 1)
     plt.tight_layout(w_pad=2)
 
 
 def p_err_vs_pattern_random_genome_figure(**kwargs):
+    patterns = list({
+        *all_strings_of_length(length=6),
+        *REBASE_NICKING_PATTERNS,
+        *SPECIAL_OGM_PATTERNS,
+    })
     result = PErrVsPattern.make(
         genome_name=RANDOM_GENOME,
+        patterns=patterns,
+        extra_patterns=REBASE_NICKING_PATTERNS,
+        annotated_patterns=SPECIAL_OGM_PATTERNS,
         **kwargs,
     )
     fig = plt.figure(figsize=(2 * FIG_SIZE, FIG_SIZE))
     axs = fig.subplots(1, 2)
     plt.sca(axs[0])
-    result.plot_theory()
-    plt.legend()
+    result.plot_theory(marker_size=2)
     plt.sca(axs[1])
     result.plot_comparison()
-    plt.legend()
     plt.tight_layout(w_pad=2)
+
+
+def rebase_patterns_table(genome_name, **kwargs):
+    df = PErrVsPattern.make(
+        genome_name=genome_name,
+        plot=0,
+        load=1,
+        **kwargs,
+    ).data_table()
+    df = df[df[PATTERN].isin(REBASE_NICKING_PATTERNS + SPECIAL_OGM_PATTERNS)].reset_index(drop=True)
+    display(df)
+    return df.style.to_latex(
+        hrules=True,
+    )
 
 
 def p_err_vs_pattern_tables(export_dir, **kwargs):
@@ -987,3 +1029,7 @@ def p_err_vs_align_length_figure(**kwargs):
         vals=np.geomspace(10e3, 400e3, 32).astype(int),
         **kwargs
     )
+
+
+if __name__ == '__main__':
+    Fire()

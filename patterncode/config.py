@@ -145,6 +145,7 @@ Citrobacter koseri
 
 ECOLI_ORGANISM_NAME = 'Escherichia coli K12'
 
+
 def get_species_names(names_str):
     names_str = [
         _.strip() for _ in names_str.split('\n')
@@ -195,12 +196,13 @@ REBASE_NICKING_PATTERNS = [
     if len(_) in {4, 5, 6} and not _.startswith('#')
 ]
 
-
 SPECIAL_OGM_PATTERNS = [
     CTTAAG,
     "GCTCTTC",
     "GCATTC",
 ]
 
-
 SIMULATION_PATTERNS = SPECIAL_OGM_PATTERNS
+
+HUMAN_GENOME_SUBPLOT_TITLE = 'Human genome (hg38)'
+BACTERIAL_GENOMES_SUBPLOT_TITLE = 'Selected bacterial genomes'

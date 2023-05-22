@@ -99,27 +99,22 @@ def plot_ci(x, k, n, **kwargs):
 
 def plot_text_annotations(xs, ys, texts, highlight, **kwargs):
     for i, (x, y, text) in enumerate(zip(xs, ys, texts)):
-        fontweight = 'bold' if text == highlight else 'normal'
-        alpha = .9
+        sign_i = 1 if i % 2 == 0 else -1
         kw = dict(
             xy=(x, y),
             xycoords='data',
-            ha='left',
+            ha='center',
             va='center',
-            xytext=(10, 15),
-            # xytext=(1.05, .01 + i / len(xs)),
-            # textcoords='axes fraction',
-            # color=color,
-            # rotation=90,
+            xytext=sign_i * np.stack([1, 1]) * 15,
             textcoords='offset points',
-            fontweight=fontweight,
-            alpha=alpha,
+            fontweight='bold',
+            alpha=1,
             arrowprops=dict(
                 arrowstyle="-|>",
                 linestyle='-',
-                alpha=alpha,
+                alpha=1,
             ),
-            fontsize=7,
+            fontsize=6,
         ) | kwargs
         plt.annotate(text, **kw)
 
@@ -136,49 +131,6 @@ def read_human_genome(file=HUMAN_GENOME_FASTA_FILE):
         if record.id.startswith('NC_')
     ]
     return sequences
-
-
-def make_subplots(evals: dict, legend=True):
-    fig = plt.figure(figsize=(3 * FIG_SIZE, 2 * FIG_SIZE))
-    axs = fig.subplots(2, 3)
-
-    plt.sca(axs[0, 0])
-    label_ax('(a) Random genome')
-    evals[RANDOM_GENOME].plot_theory()
-    if legend:
-        plt.legend()
-
-    plt.sca(axs[1, 0])
-    evals[RANDOM_GENOME].plot_comparison()
-    if legend:
-        plt.legend()
-
-    plt.sca(axs[0, 1])
-    label_ax('(b) Human genome')
-    evals[HUMAN_GENOME].plot_theory()
-    if legend:
-        plt.legend()
-    plt.ylabel('')
-    plt.sca(axs[1, 1])
-    evals[HUMAN_GENOME].plot_comparison()
-    if legend:
-        plt.legend()
-    plt.ylabel('')
-
-    plt.sca(axs[0, 2])
-    label_ax('(c) Bacterial genomes')
-    evals[BACTERIAL_GENOMES].plot_theory()
-    if legend:
-        plt.legend()
-    plt.ylabel('')
-
-    plt.sca(axs[1, 2])
-    evals[BACTERIAL_GENOMES].plot_comparison()
-    if legend:
-        plt.legend()
-    plt.ylabel('')
-
-    plt.tight_layout(w_pad=2)
 
 
 def add_subplot_seps():
