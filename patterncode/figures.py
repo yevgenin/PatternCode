@@ -651,7 +651,7 @@ class PErrVsPattern(Evaluation):
     def _annotate(self, x, y, df, annotated_patterns, **kwargs):
         df = df[df['pattern'].isin(annotated_patterns)]
         df = df.sort_values(y)
-        plot_text_annotations(df[x], df[y], df['pattern'], highlight=DEFAULT_PATTERN, **kwargs)
+        plot_text_annotations(df[x], df[y], df['pattern'], **kwargs)
 
     def _select_annotated(self, df, by):
         if NUM_ANNOTATE_PATTERNS == 0:

@@ -8,9 +8,16 @@ from patterncode.seq_utils import find_pattern_positions
 
 class LikelihoodModel(BaseModel):
     tpr: float
+    "True positive labeling rate per bin"
+
     fpr: float
+    "False positive labeling rate per bin"
+
     p_y_given_x: list[list] = None
+    "Label detection likelihood per bin"
+
     bin_size: int = DEFAULT_BIN_SIZE
+    "Bin size in base pairs"
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -26,15 +33,33 @@ class LikelihoodModel(BaseModel):
 
 class PatternTool(BaseModel):
     sequence: str = Field(..., repr=False)
+    "Genome sequence"
+
     pattern: str
+    "Labeled pattern"
+
     fragment_len: int | np.ndarray = DEFAULT_MOLECULE_LEN
+    "Fragment length in base pairs"
+
     bin_size: int = DEFAULT_BIN_SIZE
+    "Bin size in base pairs"
+
     genome_len: int = None
+    "Genome length in base pairs"
+
     p_x: list = None
+    "Genome per-bin pattern count distribution"
+
     p_y_given_x: list[list] = None
+    "Label detection likelihood per bin"
+
     p_err: float = None
+    "Error probability of a maximum-likelihood decoder"
+
     _count_cap: int = None
+
     positions: np.ndarray = Field(None, repr=False)
+    "Pattern positions in the genome"
 
     class Config:
         underscore_attrs_are_private = True

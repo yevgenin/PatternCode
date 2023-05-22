@@ -97,8 +97,9 @@ def plot_ci(x, k, n, **kwargs):
     plt.vlines(x, *ci, **kwargs)
 
 
-def plot_text_annotations(xs, ys, texts, highlight, **kwargs):
+def plot_text_annotations(xs, ys, texts, **kwargs):
     for i, (x, y, text) in enumerate(zip(xs, ys, texts)):
+        plt.plot(x, y, '.', color='k')
         sign_i = 1 if i % 2 == 0 else -1
         kw = dict(
             xy=(x, y),
