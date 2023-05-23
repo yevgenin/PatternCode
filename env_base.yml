@@ -1,0 +1,21 @@
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - biopython
+  - coolname
+  - ipython
+  - joblib
+  - jupyter
+  - matplotlib
+  - more-itertools
+  - ncbi-datasets-cli
+  - numba
+  - pandas
+  - scikit-image
+  - statsmodels
+  - tqdm
+  - fire
+  - pip:
+    - matplotlib_scalebar

@@ -1,0 +1,17 @@
+# Project stuff
+.run/*
+.vscode/
+.idea/
+workspace.code-workspace
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data
+#data/
+out/
+cache/
+
+.DS_Store
