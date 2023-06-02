@@ -10,3 +10,9 @@ conda env create -n patterncode -f ./environment.yml
 conda activate patterncode
 jupyter notebook ./paper_figures.ipynb
 ```
+
+# Usage example in jupyter notebook
+
+```shell
+jupyter notebook ./example.ipynb
+```
