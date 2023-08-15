@@ -1,0 +1,14 @@
+biopython
+coolname
+ipython
+joblib
+jupyter
+matplotlib
+more-itertools
+numba
+pandas
+scikit-image
+statsmodels
+tqdm
+fire
+matplotlib_scalebar

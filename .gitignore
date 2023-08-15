@@ -1,4 +1,5 @@
 # Project stuff
+.venv/
 .run/*
 .vscode/
 .idea/
