@@ -30,7 +30,7 @@ def generate_name(date=True, time=True, num_words=2):
 T = TypeVar('T')
 DATA_DIR = Path().home() / 'data'
 OUT_DIR = Path().home() / 'out/PatternCode'
-CACHE_DIR = DATA_DIR / 'out/cache'
+CACHE_DIR = OUT_DIR / 'cache'
 ENV_PREFIX = 'PC_'
 ENV_RUN_NAME = ENV_PREFIX + 'RUN_NAME'
 ENV_LOAD_RUN_NAME = ENV_PREFIX + 'LOAD_RUN_NAME'
