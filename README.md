@@ -5,13 +5,16 @@ See the [paper](https://www.biorxiv.org/content/10.1101/2023.05.23.541882v1) for
 
 # Reproducing the figures from the paper
 
+Assuming anaconda python 3.10 is installed:
+
 ```shell
-conda env create -n patterncode -f ./environment.yml
-conda activate patterncode
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 jupyter notebook ./paper_figures.ipynb
 ```
 
-# Usage example in jupyter notebook
+# Usage example in jupyter notebook: [example.ipynb](./example.ipynb)
 
 ```shell
 jupyter notebook ./example.ipynb
