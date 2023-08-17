@@ -41,14 +41,14 @@ class OGMData(Computation):
             }
         )
 
-    def _plot(self):
+    def _plot(self, color='C2'):
         df = self.df
 
         x = 'molecule_len'
-        plt.plot(df[x], df['error_rate'], label=EXPERIMENTAL, alpha=.8, marker='o', c='C2', ls=':')
+        plt.plot(df[x], df['error_rate'], label=EXPERIMENTAL, alpha=.8, marker='o', c=color, ls=':')
 
         if self.show_ci:
-            plot_ci(df[x], df['error_count'], df['num_trials'], alpha=.5, color='C2', ls='-')
+            plot_ci(df[x], df['error_count'], df['num_trials'], alpha=.5, color=color, ls='-')
 
         plt.xlabel(MOLECULE_LENGTH)
         plt.ylabel(ERROR_PROBABILITY)

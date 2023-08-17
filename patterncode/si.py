@@ -186,8 +186,8 @@ class PErrVsPatternVsBinSize(Computation):
 
     @classmethod
     def plot_vs_bin_size(cls, genome=None):
-        bins_sizes = [100, 500, 750, 1000]
-        colors = ['C0', 'C1', 'C2', 'C3']
+        bins_sizes = [100, 500, 750, 1000, 2000]
+        colors = ['C0', 'C1', 'C2', 'C3', 'C4']
         if genome is None:
             genome = cls.get_genome()
         _ogm_data = OGMData.get_molecules_data()
