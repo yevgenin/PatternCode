@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 
 # os.environ['PC_QUICK_RUN'] = '1'
 from patterncode.config import *
@@ -11,8 +12,9 @@ from tqdm.auto import tqdm
 import numpy as np
 from scipy.interpolate import interp1d
 
-from patterncode.figures import Evaluation, SimulationForPattern, BinnedOGMData, TheoryForVaryingPattern
-from patterncode.genome_data import GenomeIndex
+from patterncode.figures import Evaluation, SimulationForPattern, BinnedOGMData, TheoryForVaryingPattern, \
+    TheoryForVaryingChannelModel
+from patterncode.genome_data import GenomeIndex, NCBIGenome
 
 from patterncode.ogm_data import OGMData
 from scipy.stats import median_abs_deviation
@@ -21,7 +23,7 @@ from pydantic import BaseModel
 from matplotlib import pyplot as plt
 from matplotlib.ticker import PercentFormatter
 
-from patterncode.utils import sample_uniformly, plot_grid, plot_ci, plot_text_annotations, Computation
+from patterncode.utils import sample_uniformly, plot_grid, plot_ci, plot_text_annotations, Computation, cached_func
 
 
 class MoleculeAnalysis(BaseModel):
@@ -121,33 +123,33 @@ class OGMDataAnalysis:
         plt.grid(which='both', axis='both')
 
 
+rng = np.random.default_rng(seed=0)
+
+
 class PErrVsPatternVsBinSize(Computation):
-    name_prefix = 'pattern_bin'
-    genome_name = HUMAN_GENOME
 
     def __init__(self):
         super().__init__()
         self.patterns = list({*all_strings_of_length(length=6), *SPECIAL_OGM_PATTERNS})
         self.extra_patterns = None
-        self.annotated_patterns = SPECIAL_OGM_PATTERNS
+        self.annotated_patterns = None
         self.bin_size = None
+        self._genome = None
+        self._ogm_data = None
+
+    @property
+    def name_prefix(self):
+        return f'pattern_bin_size={self.bin_size}'
 
     def _compute(self):
-        data = BinnedOGMData.compute(
-            _ogm_data=OGMData.get_molecules_data(),
-            verbose=1,
+        self.theory_df = self._swipe(TheoryForVaryingChannelModel.init(
+            _genome=self._genome,
+            _ogm_data=self._ogm_data,
             bin_size=self.bin_size,
-        )
-        likelihood = data.likelihood
-        self.theory_df = self._swipe(TheoryForVaryingPattern.init(
-            _genome=GenomeIndex.get_genome(self.genome_name),
-            bin_size=self.bin_size,
-            count_cap=DEFAULT_COUNT_CAP,
-            likelihood=likelihood,
-            molecule_len=DEFAULT_MOLECULE_LEN_PER_GENOME[self.genome_name],
+            molecule_len=DEFAULT_MOLECULE_LEN_PER_GENOME[HUMAN_GENOME],
         ), 'pattern', self.patterns)
 
-    def plot_theory(self, marker_size=1, color='k', marker='o'):
+    def plot_theory(self, marker_size=.5, color='k', marker='o'):
         """
         plot p_err vs density for theory
         """
@@ -163,28 +165,43 @@ class PErrVsPatternVsBinSize(Computation):
         y = 'p_err'
 
         df = df.sort_values(x)
-        plt.scatter(df[x], df[y], marker=marker, s=marker_size, c=color)
+        line = plt.scatter(df[x], df[y], marker=marker, s=marker_size, c=color, alpha=.8)
 
         if self.extra_patterns is not None:
             df_extra = df[df['pattern'].isin(self.extra_patterns)]
             plt.scatter(df_extra[x], df_extra[y], marker='x', c='r', s=10, alpha=.7)
 
         if self.annotated_patterns is not None:
-            self._annotate(x, y, df, self.annotated_patterns)
+            self._annotate(x, y, df, self.annotated_patterns, color=color)
 
-        plt.ylim(None, 2)
+        plt.ylim(1e-4, 5)
         plot_grid()
+        return line
 
     def _annotate(self, x, y, df, annotated_patterns, **kwargs):
         df = df[df['pattern'].isin(annotated_patterns)]
         df = df.sort_values(y)
-        plot_text_annotations(df[x], df[y], df['pattern'], **kwargs)
+        r = 100
+        plot_text_annotations(df[x], df[y], df['pattern'], distance=(rng.integers(-r, r), rng.integers(-r, r)), **kwargs)
 
     @classmethod
-    def plot_vs_bin_size(cls):
-        bins_sizes = [500, 750, 1000]
-        colors = ['C0', 'C1', 'C2']
+    def plot_vs_bin_size(cls, genome=None):
+        bins_sizes = [100, 500, 750, 1000]
+        colors = ['C0', 'C1', 'C2', 'C3']
+        if genome is None:
+            genome = cls.get_genome()
+        _ogm_data = OGMData.get_molecules_data()
+
+        lines = []
         for bin_size, color in zip(bins_sizes, colors):
-            cls().compute(bin_size=bin_size).plot_theory(color=color)
+            line = cls().make(bin_size=bin_size, _genome=genome, _ogm_data=_ogm_data, plot=False, load=1,
+                              annotated_patterns=[CTTAAG],
+                              save=True).plot_theory(
+                color=color)
+            lines.append(line)
         legend = [f'bin_size={_} bp' for _ in bins_sizes]
-        plt.legend(legend)
+        plt.legend(lines, legend, loc='lower left', fontsize=8, markerscale=3)
+
+    @staticmethod
+    def get_genome():
+        return NCBIGenome.get_genome(HUMAN_GENOME)

@@ -385,6 +385,8 @@ class TheoryForVaryingChannelModel(Theory):
         )
         super()._compute()
 
+        self.density = binned_genome.positions_len / binned_genome.genome_len
+
 
 class SimulationTrial(Computation):
     def __init__(self):

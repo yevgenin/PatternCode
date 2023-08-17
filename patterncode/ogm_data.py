@@ -20,9 +20,10 @@ class OGMData(Computation):
     def __init__(self):
         super().__init__()
         self.show_ci = SHOW_CI
+        self.data_file = PROJECT_DATA_DIR / OGM_DATA_FILE
 
     def _compute(self):
-        data = pd.read_pickle(PROJECT_DATA_DIR / OGM_DATA_FILE)
+        data = pd.read_pickle(self.data_file)
         vars(self).update(data)
 
         correct = self.correct_df.groupby("len_bp")["correct"]

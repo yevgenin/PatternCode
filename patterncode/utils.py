@@ -97,16 +97,17 @@ def plot_ci(x, k, n, **kwargs):
     plt.vlines(x, *ci, **kwargs)
 
 
-def plot_text_annotations(xs, ys, texts, **kwargs):
+def plot_text_annotations(xs, ys, texts, color='k', distance=(15, 15), **kwargs):
     for i, (x, y, text) in enumerate(zip(xs, ys, texts)):
-        plt.plot(x, y, '.', color='k')
+        plt.plot(x, y, '.', color=color)
         sign_i = 1 if i % 2 == 0 else -1
         kw = dict(
             xy=(x, y),
             xycoords='data',
             ha='center',
             va='center',
-            xytext=sign_i * np.stack([1, 1]) * 15,
+            color=color,
+            xytext=sign_i * np.stack(distance),
             textcoords='offset points',
             fontweight='bold',
             alpha=1,
@@ -114,6 +115,7 @@ def plot_text_annotations(xs, ys, texts, **kwargs):
                 arrowstyle="-|>",
                 linestyle='-',
                 alpha=1,
+                color=color,
             ),
             fontsize=6,
         ) | kwargs
