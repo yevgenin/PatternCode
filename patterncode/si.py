@@ -79,17 +79,17 @@ class OGMDataAnalysis:
     class Config(BaseModel):
         plot = True
         num_molecules = 32
+        num_lengths = 64
+        figures_dir = 'figures'
+        save_figure = True
 
     def __init__(self, **config):
         self.config = self.Config(**config)
         self.data = OGMData.get_molecules_data()
 
-        self.lengths = np.geomspace(10000, 400000, 30).astype(int)
+        self.lengths = np.geomspace(10000, 400000, self.config.num_lengths).astype(int)
         self.molecules = self.data.molecules_df.sample(n=self.config.num_molecules, random_state=0).to_dict(
             orient='records')
-
-    def example_molecule(self):
-        return MoleculeAnalysis(**self.molecules[0])
 
     def average_misaligned_bins_fraction(self):
         results = np.mean([
@@ -108,6 +108,9 @@ class OGMDataAnalysis:
             plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
             plt.grid(which='both', axis='both')
+
+        if self.config.save_figure:
+            plt.savefig(self.config.figures_dir + '/misaligned_bins_fraction.png', dpi=300)
 
         return results
 
@@ -128,7 +131,14 @@ class OGMDataAnalysis:
             plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
             plt.grid(which='both', axis='both')
+
+        if self.config.save_figure:
+            plt.savefig(self.config.figures_dir + '/stretch_factor_deviation.png', dpi=300)
+
         return results
+
+    def example_molecule(self):
+        return MoleculeAnalysis(**self.molecules[0])
 
 
 rng = np.random.default_rng(seed=0)
