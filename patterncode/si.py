@@ -1,20 +1,16 @@
-import os
-from functools import lru_cache
-
 # os.environ['PC_QUICK_RUN'] = '1'
 from patterncode.config import *
 
 from patterncode.seq_utils import all_strings_of_length
 
-from typing import Any, Callable
+from typing import Any
 
 from tqdm.auto import tqdm
 import numpy as np
 from scipy.interpolate import interp1d
 
-from patterncode.figures import Evaluation, SimulationForPattern, BinnedOGMData, TheoryForVaryingPattern, \
-    TheoryForVaryingChannelModel
-from patterncode.genome_data import GenomeIndex, NCBIGenome
+from patterncode.figures import TheoryForVaryingChannelModel
+from patterncode.genome_data import NCBIGenome
 
 from patterncode.ogm_data import OGMData
 from scipy.stats import median_abs_deviation
@@ -23,7 +19,7 @@ from pydantic import BaseModel
 from matplotlib import pyplot as plt
 from matplotlib.ticker import PercentFormatter
 
-from patterncode.utils import sample_uniformly, plot_grid, plot_ci, plot_text_annotations, Computation, cached_func
+from patterncode.utils import plot_grid, plot_text_annotations, Computation
 
 
 class MoleculeAnalysis(BaseModel):
@@ -77,50 +73,57 @@ class MoleculeAnalysis(BaseModel):
 
 
 class OGMDataAnalysis:
-    def __init__(self, num_samples=10):
+    class Config(BaseModel):
+        plot = True
+
+    def __init__(self, num_samples=10, **config):
+        self.config = self.Config(**config)
         self.data = OGMData.get_molecules_data()
 
         self.lengths = np.geomspace(10000, 400000, 30).astype(int)
         self.molecules = self.data.molecules_df.sample(n=num_samples, random_state=0).to_dict(orient='records')
 
-    def molecule(self):
+    def example_molecule(self):
         return MoleculeAnalysis(**self.molecules[0])
 
-    def _average_misaligned_bins_fraction(self):
-        return np.median([
+    def average_misaligned_bins_fraction(self):
+        y = np.median([
             [MoleculeAnalysis(**molecule, crop_length=_).misaligned_bins_fraction()
              for _ in self.lengths]
             for molecule in tqdm(self.molecules)
         ], axis=0)
 
-    def plot_average_misaligned_bins_fraction(self):
-        plt.plot(self.lengths, self._average_misaligned_bins_fraction(), 'k.-', )
+        if self.config.plot:
+            plt.plot(self.lengths, y, 'k.-', )
 
-        plt.xscale('log')
-        plt.xlabel('DNA fragment length (bp)')
+            plt.xscale('log')
+            plt.xlabel('DNA fragment length (bp)')
 
-        plt.ylabel('Misaligned bins fraction')
-        plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
+            plt.ylabel('Misaligned bins fraction')
+            plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
-        plt.grid(which='both', axis='both')
+            plt.grid(which='both', axis='both')
 
-    def _average_stretch(self):
-        return np.median([
+        return y
+
+    def average_stretch(self):
+        y = np.median([
             [MoleculeAnalysis(**molecule, crop_length=_).stretch_factor_deviation()
              for _ in self.lengths]
             for molecule in tqdm(self.molecules)
         ], axis=0)
 
-    def plot_average_stretch(self):
-        plt.plot(self.lengths, self._average_stretch(), 'k.-', )
+        if self.config.plot:
+            plt.plot(self.lengths, y, 'k.-', )
 
-        plt.xscale('log')
-        plt.xlabel('DNA fragment length (bp)')
+            plt.xscale('log')
+            plt.xlabel('DNA fragment length (bp)')
 
-        plt.ylabel('Stretch factor deviation')
-        plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
+            plt.ylabel('Stretch factor deviation')
+            plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
-        plt.grid(which='both', axis='both')
+            plt.grid(which='both', axis='both')
+        return y
 
 
 rng = np.random.default_rng(seed=0)
@@ -182,7 +185,8 @@ class PErrVsPatternVsBinSize(Computation):
         df = df[df['pattern'].isin(annotated_patterns)]
         df = df.sort_values(y)
         r = 100
-        plot_text_annotations(df[x], df[y], df['pattern'], distance=(rng.integers(-r, r), rng.integers(-r, r)), **kwargs)
+        plot_text_annotations(df[x], df[y], df['pattern'], distance=(rng.integers(-r, r), rng.integers(-r, r)),
+                              **kwargs)
 
     @classmethod
     def plot_vs_bin_size(cls, genome=None):
