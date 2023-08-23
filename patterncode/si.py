@@ -1,4 +1,3 @@
-# os.environ['PC_QUICK_RUN'] = '1'
 from patterncode.config import *
 
 from patterncode.seq_utils import all_strings_of_length
@@ -31,6 +30,10 @@ class MoleculeAnalysis(BaseModel):
     num_crops: int = 100
     bin_size: float = 1000
 
+    class Config:
+        arbitrary_types_allowed = True
+        extra = 'allow'
+
     def __init__(self, **data: Any):
         super().__init__(**data)
         r, q = self.alignment.T
@@ -53,7 +56,7 @@ class MoleculeAnalysis(BaseModel):
         return np.mean(x_bin_number != y_bin_number)
 
     def misaligned_bins_fraction(self):
-        return np.median([
+        return np.mean([
             self._misaligned_bins_fraction(start) for start in self._crop_starts
         ])
 
@@ -75,26 +78,28 @@ class MoleculeAnalysis(BaseModel):
 class OGMDataAnalysis:
     class Config(BaseModel):
         plot = True
+        num_molecules = 32
 
-    def __init__(self, num_samples=10, **config):
+    def __init__(self, **config):
         self.config = self.Config(**config)
         self.data = OGMData.get_molecules_data()
 
         self.lengths = np.geomspace(10000, 400000, 30).astype(int)
-        self.molecules = self.data.molecules_df.sample(n=num_samples, random_state=0).to_dict(orient='records')
+        self.molecules = self.data.molecules_df.sample(n=self.config.num_molecules, random_state=0).to_dict(
+            orient='records')
 
     def example_molecule(self):
         return MoleculeAnalysis(**self.molecules[0])
 
     def average_misaligned_bins_fraction(self):
-        y = np.median([
+        results = np.mean([
             [MoleculeAnalysis(**molecule, crop_length=_).misaligned_bins_fraction()
              for _ in self.lengths]
             for molecule in tqdm(self.molecules)
         ], axis=0)
 
         if self.config.plot:
-            plt.plot(self.lengths, y, 'k.-', )
+            plt.plot(self.lengths, results, 'k.-', )
 
             plt.xscale('log')
             plt.xlabel('DNA fragment length (bp)')
@@ -104,17 +109,17 @@ class OGMDataAnalysis:
 
             plt.grid(which='both', axis='both')
 
-        return y
+        return results
 
     def average_stretch(self):
-        y = np.median([
+        results = np.median([
             [MoleculeAnalysis(**molecule, crop_length=_).stretch_factor_deviation()
              for _ in self.lengths]
             for molecule in tqdm(self.molecules)
         ], axis=0)
 
         if self.config.plot:
-            plt.plot(self.lengths, y, 'k.-', )
+            plt.plot(self.lengths, results, 'k.-', )
 
             plt.xscale('log')
             plt.xlabel('DNA fragment length (bp)')
@@ -123,7 +128,7 @@ class OGMDataAnalysis:
             plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
             plt.grid(which='both', axis='both')
-        return y
+        return results
 
 
 rng = np.random.default_rng(seed=0)
