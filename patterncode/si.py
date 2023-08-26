@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 import numpy as np
 from scipy.interpolate import interp1d
 
-from patterncode.figures import TheoryForVaryingChannelModel
+from patterncode.figures import TheoryForVaryingChannelModel, PErrVsFragmentLen
 from patterncode.genome_data import NCBIGenome
 
 from patterncode.ogm_data import OGMData
@@ -19,6 +19,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import PercentFormatter
 
 from patterncode.utils import plot_grid, plot_text_annotations, Computation
+import matplotlib.patches as patches
 
 
 class MoleculeAnalysis(BaseModel):
@@ -27,8 +28,9 @@ class MoleculeAnalysis(BaseModel):
     alignment: Any
 
     crop_length: int = 50000
-    num_crops: int = 100
+    num_crops: int = 64
     bin_size: float = 1000
+    plot: bool = False
 
     class Config:
         arbitrary_types_allowed = True
@@ -53,6 +55,11 @@ class MoleculeAnalysis(BaseModel):
         scale = (x[-1] - x[0]) / (y[-1] - y[0])
         x_bin_number = (x / self.bin_size).astype(int)
         y_bin_number = (y * scale / self.bin_size).astype(int)
+
+        if self.plot:
+            print(f'x_bin_number={x_bin_number}')
+            print(f'y_bin_number={y_bin_number}')
+
         return np.mean(x_bin_number != y_bin_number)
 
     def misaligned_bins_fraction(self):
@@ -61,7 +68,7 @@ class MoleculeAnalysis(BaseModel):
         ])
 
     def stretch_factor_deviation(self):
-        return np.median([
+        return np.mean([
             self.deviation_metric(self.stretch_factor(start)) for start in self._crop_starts
         ])
 
@@ -79,8 +86,8 @@ class OGMDataAnalysis:
     class Config(BaseModel):
         plot = True
         num_molecules = 32
-        num_lengths = 64
-        figures_dir = 'figures'
+        num_lengths = 24
+        figures_dir = '../../PatternCode-Paper/figures'
         save_figure = True
 
     def __init__(self, **config):
@@ -92,11 +99,13 @@ class OGMDataAnalysis:
             orient='records')
 
     def average_misaligned_bins_fraction(self):
-        results = np.mean([
-            [MoleculeAnalysis(**molecule, crop_length=_).misaligned_bins_fraction()
-             for _ in self.lengths]
-            for molecule in tqdm(self.molecules)
-        ], axis=0)
+        results = [
+            np.mean([
+                MoleculeAnalysis(**molecule, crop_length=_).misaligned_bins_fraction()
+                for molecule in self.molecules
+            ])
+            for _ in tqdm(self.lengths)
+        ]
 
         if self.config.plot:
             plt.plot(self.lengths, results, 'k.-', )
@@ -104,22 +113,28 @@ class OGMDataAnalysis:
             plt.xscale('log')
             plt.xlabel('DNA fragment length (bp)')
 
-            plt.ylabel('Misaligned bins fraction')
+            plt.ylabel('Bin-misaligned labels fraction')
             plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
 
             plt.grid(which='both', axis='both')
 
         if self.config.save_figure:
-            plt.savefig(self.config.figures_dir + '/misaligned_bins_fraction.png', dpi=300)
+            self._savefig('misaligned_bins_fraction')
 
         return results
 
+    def _savefig(self, name):
+        print('saving figure: ', name)
+        plt.savefig(self.config.figures_dir + f'/{name}.png', dpi=300)
+        plt.savefig(self.config.figures_dir + f'/{name}.pdf')
+
     def average_stretch(self):
-        results = np.median([
-            [MoleculeAnalysis(**molecule, crop_length=_).stretch_factor_deviation()
-             for _ in self.lengths]
-            for molecule in tqdm(self.molecules)
-        ], axis=0)
+        results = [
+            np.mean([
+                MoleculeAnalysis(**molecule, crop_length=_).stretch_factor_deviation()
+                for molecule in self.molecules
+            ]) for _ in tqdm(self.lengths)
+        ]
 
         if self.config.plot:
             plt.plot(self.lengths, results, 'k.-', )
@@ -133,21 +148,20 @@ class OGMDataAnalysis:
             plt.grid(which='both', axis='both')
 
         if self.config.save_figure:
-            plt.savefig(self.config.figures_dir + '/stretch_factor_deviation.png', dpi=300)
+            self._savefig('stretch_factor_deviation')
 
         return results
 
     def example_molecule(self):
-        return MoleculeAnalysis(**self.molecules[0])
-
-
-rng = np.random.default_rng(seed=0)
+        return MoleculeAnalysis(**self.molecules[0], plot=True)
 
 
 class PErrVsPatternVsBinSize(Computation):
+    rng = np.random.default_rng(seed=0)
 
     def __init__(self):
         super().__init__()
+
         self.patterns = list({*all_strings_of_length(length=6), *SPECIAL_OGM_PATTERNS})
         self.extra_patterns = None
         self.annotated_patterns = None
@@ -200,20 +214,19 @@ class PErrVsPatternVsBinSize(Computation):
         df = df[df['pattern'].isin(annotated_patterns)]
         df = df.sort_values(y)
         r = 100
-        plot_text_annotations(df[x], df[y], df['pattern'], distance=(rng.integers(-r, r), rng.integers(-r, r)),
+        plot_text_annotations(df[x], df[y], df['pattern'],
+                              distance=(self.rng.integers(-r, r), self.rng.integers(-r, r)),
                               **kwargs)
 
     @classmethod
-    def plot_vs_bin_size(cls, genome=None):
+    def plot_vs_bin_size(cls, genome=None, load=True):
         bins_sizes = [100, 500, 750, 1000, 2000]
         colors = ['C0', 'C1', 'C2', 'C3', 'C4']
-        if genome is None:
-            genome = cls.get_genome()
         _ogm_data = OGMData.get_molecules_data()
 
         lines = []
         for bin_size, color in zip(bins_sizes, colors):
-            line = cls().make(bin_size=bin_size, _genome=genome, _ogm_data=_ogm_data, plot=False, load=1,
+            line = cls().make(bin_size=bin_size, _genome=genome, _ogm_data=_ogm_data, plot=False, load=load,
                               annotated_patterns=[CTTAAG],
                               save=True).plot_theory(
                 color=color)
@@ -224,3 +237,43 @@ class PErrVsPatternVsBinSize(Computation):
     @staticmethod
     def get_genome():
         return NCBIGenome.get_genome(HUMAN_GENOME)
+
+
+class SIFigures(OGMDataAnalysis):
+
+    def bionano_comparison(self):
+        PErrVsFragmentLen.make(
+            genome_name=HUMAN_GENOME,
+            _ogm_data=OGMData.get_molecules_data(),
+            load=1,
+            plot=0
+        ).plot_theory()
+        OGMData.make(
+            data_file='/Users/user1/out/PatternCode/export_chosen_fig=fig_b_bionano_20230816T220617Z-melodic-mouse.pkl',
+            load=0, plot=1
+        )._plot(color='C3')
+        lines = plt.gca().lines
+        plt.legend(
+            lines,
+            ['Theory', 'Simulation', 'Experimental: DeepOM', 'Experimental: Bionano']
+        )
+        self._savefig('bionano_comparison')
+
+    def bin_size_pattern_effect(self, load=True):
+
+        if load:
+            genome = None
+        else:
+            genome = PErrVsPatternVsBinSize.get_genome()
+
+        PErrVsPatternVsBinSize.rng = np.random.default_rng(seed=0)
+        ax = plt.gca()
+        rect = patches.Rectangle((2 ** (-13), 3e-1), 2 ** (-12), .5, facecolor='none', edgecolor='black')
+        ax.add_patch(rect)
+
+        rect = patches.Rectangle((.01, .06), .3, .14, zorder=50,
+                                 facecolor='none', edgecolor='black', transform=ax.transAxes)
+        ax.add_patch(rect)
+        PErrVsPatternVsBinSize.plot_vs_bin_size(genome, load=load)
+        plt.xlim(None, 2 ** (-8))
+        self._savefig('bin_size_pattern')
