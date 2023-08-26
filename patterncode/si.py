@@ -249,7 +249,7 @@ class SIFigures(OGMDataAnalysis):
             plot=0
         ).plot_theory()
         OGMData.make(
-            data_file='/Users/user1/out/PatternCode/export_chosen_fig=fig_b_bionano_20230816T220617Z-melodic-mouse.pkl',
+            data_file=PROJECT_DATA_DIR / 'data2.pkl',
             load=0, plot=1
         )._plot(color='C3')
         lines = plt.gca().lines
